@@ -1,0 +1,404 @@
+<div class="app-container">
+  <!-- Top Navigation / Header -->
+  <header class="app-header">
+    <div class="brand-section">
+      <div class="brand-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m7.5 4.27 9 5.15"/>
+          <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+          <path d="m3.3 7 8.7 5 8.7-5"/>
+          <path d="M12 22V12"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="brand-title">FOOTLOOSE</h1>
+        <p class="brand-subtitle">Módulo de Procesamiento Masivo de Inventario</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <div class="db-status-badge">
+        <span class="status-dot"></span>
+        <span>SQL Server: <strong>inventario_db</strong></span>
+      </div>
+      <button class="btn-secondary-sm" (click)="limpiarProductos()" title="Limpiar datos de prueba">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 6h18"/>
+          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+        </svg>
+        Reset BD
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="main-content">
+    <!-- Top Row: Upload Card & Live Inventory Stats -->
+    <div class="grid-top">
+      <!-- Upload Card -->
+      <section class="card upload-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="card-icon upload-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Carga de Archivo Excel / CSV</h2>
+              <p class="card-desc">Soporta archivos <code>.xlsx</code>, <code>.xls</code> y <code>.csv</code></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <!-- Drop Zone -->
+          <div 
+            class="drop-zone"
+            [class.dragging]="isDragging"
+            [class.has-file]="selectedFile"
+            (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave($event)"
+            (drop)="onDrop($event)"
+            (click)="fileInput.click()">
+            
+            <input 
+              #fileInput 
+              type="file" 
+              accept=".xlsx,.xls,.csv" 
+              (change)="onFileSelected($event)" 
+              style="display: none;">
+
+            <div *ngIf="!selectedFile" class="drop-prompt">
+              <div class="upload-cloud-icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+                  <path d="M12 12v9"/>
+                  <path d="m8 16 4-4 4 4"/>
+                </svg>
+              </div>
+              <p class="drop-text-primary">Arrastra y suelta tu archivo aquí, o <span class="highlight">explora</span></p>
+              <p class="drop-text-secondary">Mapeo automático de columnas: Nombre, SKU, Categoría, Stock, Color, Talla, Modelo</p>
+            </div>
+
+            <div *ngIf="selectedFile" class="file-preview-box" (click)="$event.stopPropagation()">
+              <div class="file-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                  <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+                  <path d="M8 13h2"/>
+                  <path d="M14 13h2"/>
+                  <path d="M8 17h8"/>
+                </svg>
+              </div>
+              <div class="file-info">
+                <p class="file-name">{{ selectedFile.name }}</p>
+                <p class="file-size">{{ (selectedFile.size / 1024).toFixed(1) }} KB</p>
+              </div>
+              <button class="btn-remove" (click)="clearSelectedFile()" title="Quitar archivo">✕</button>
+            </div>
+          </div>
+
+          <!-- Error Alert -->
+          <div *ngIf="errorMessage" class="alert alert-error">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>{{ errorMessage }}</span>
+          </div>
+
+          <!-- Upload Actions -->
+          <div class="upload-actions">
+            <button 
+              class="btn-primary" 
+              [disabled]="!selectedFile || isUploading" 
+              (click)="subirArchivo()">
+              <span *ngIf="!isUploading" class="btn-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                Subir y Procesar Inventario
+              </span>
+              <span *ngIf="isUploading" class="btn-content">
+                <span class="spinner"></span>
+                Procesando en SQL Server...
+              </span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Global DB Overview Stats -->
+      <section class="card stats-overview-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="card-icon stats-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 3v18h18"/>
+                <path d="m19 9-5 5-4-4-3 3"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Métricas Generales en BD</h2>
+              <p class="card-desc">Estado acumulado en SQL Server</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body stats-grid" *ngIf="resumen">
+          <div class="stat-box stat-blue">
+            <span class="stat-label">Total Productos</span>
+            <span class="stat-val">{{ resumen.metricas.totalProductos | number }}</span>
+          </div>
+          <div class="stat-box stat-purple">
+            <span class="stat-label">Stock Total</span>
+            <span class="stat-val">{{ resumen.metricas.totalStock | number }}</span>
+          </div>
+          <div class="stat-box stat-teal">
+            <span class="stat-label">Modelos Únicos</span>
+            <span class="stat-val">{{ resumen.metricas.totalModelos | number }}</span>
+          </div>
+          <div class="stat-box stat-orange">
+            <span class="stat-label">Colores Únicos</span>
+            <span class="stat-val">{{ resumen.metricas.totalColores | number }}</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Report Results Section (Visible after upload) -->
+    <section *ngIf="lastReport" class="report-section animate-fade-in">
+      <div class="report-header-banner">
+        <div class="banner-text">
+          <div class="success-icon-badge">✓</div>
+          <div>
+            <h2 class="report-title">{{ lastReport.mensaje }}</h2>
+            <p class="report-subtitle">Procesado en {{ lastReport.tiempoProcesamientoMs }} ms de forma atómica con SQL Server Transaction.</p>
+          </div>
+        </div>
+        <div class="banner-buttons">
+          <button class="btn-toggle-json" (click)="rawJsonView = !rawJsonView">
+            {{ rawJsonView ? 'Ocultar JSON' : 'Ver JSON Raw' }}
+          </button>
+          <button class="btn-copy-json" (click)="copyJson()">
+            Copiar JSON
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card kpi-total">
+          <div class="kpi-number">{{ lastReport.totalRegistrosLeidos }}</div>
+          <div class="kpi-title">totalRegistrosLeidos</div>
+          <div class="kpi-sub">Total de filas procesadas</div>
+        </div>
+
+        <div class="kpi-card kpi-insert">
+          <div class="kpi-number">+{{ lastReport.totalRegistrosInsertados }}</div>
+          <div class="kpi-title">totalRegistrosInsertados</div>
+          <div class="kpi-sub">Nuevos SKUs registrados</div>
+        </div>
+
+        <div class="kpi-card kpi-update">
+          <div class="kpi-number">{{ lastReport.totalRegistrosActualizados }}</div>
+          <div class="kpi-title">totalRegistrosActualizados</div>
+          <div class="kpi-sub">SKUs existentes actualizados</div>
+        </div>
+
+        <div class="kpi-card kpi-error" [class.has-errors]="lastReport.erroresEncontrados > 0">
+          <div class="kpi-number">{{ lastReport.erroresEncontrados }}</div>
+          <div class="kpi-title">erroresEncontrados</div>
+          <div class="kpi-sub">{{ lastReport.erroresEncontrados === 0 ? 'Sin incidencias' : 'Filas con inconsistencias' }}</div>
+        </div>
+      </div>
+
+      <!-- JSON Raw View (Exact Output from Challenge Image) -->
+      <div *ngIf="rawJsonView" class="raw-json-panel">
+        <div class="code-header">
+          <span>Respuesta JSON del Endpoint (POST /api/inventario/upload)</span>
+          <span class="badge-tag">application/json</span>
+        </div>
+        <pre class="code-block"><code>{{ lastReport | json }}</code></pre>
+      </div>
+
+      <!-- Breakdown Details: insertadosPorColor & insertadosPorModelo -->
+      <div class="breakdown-grid">
+        <!-- Colores -->
+        <div class="card detail-card">
+          <div class="detail-header">
+            <h3>🎨 Insertados por Color</h3>
+            <span class="badge-count">{{ getColorKeys().length }} colores</span>
+          </div>
+          <div class="detail-body">
+            <div *ngIf="getColorKeys().length === 0" class="empty-detail">
+              No se insertaron nuevos registros en esta carga.
+            </div>
+            <div *ngFor="let col of getColorKeys()" class="detail-row">
+              <div class="detail-label">
+                <span class="color-dot"></span>
+                <span>{{ col }}</span>
+              </div>
+              <span class="detail-value">{{ lastReport.detalle.insertadosPorColor[col] }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modelos -->
+        <div class="card detail-card">
+          <div class="detail-header">
+            <h3>👟 Insertados por Modelo</h3>
+            <span class="badge-count">{{ getModeloKeys().length }} modelos</span>
+          </div>
+          <div class="detail-body">
+            <div *ngIf="getModeloKeys().length === 0" class="empty-detail">
+              No se insertaron nuevos registros en esta carga.
+            </div>
+            <div *ngFor="let mod of getModeloKeys()" class="detail-row">
+              <div class="detail-label">
+                <span class="model-icon">◈</span>
+                <span>{{ mod }}</span>
+              </div>
+              <span class="detail-value">{{ lastReport.detalle.insertadosPorModelo[mod] }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Validation Errors Table -->
+      <div *ngIf="lastReport.errores && lastReport.errores.length > 0" class="card errors-card">
+        <div class="detail-header error-header">
+          <h3>⚠️ Detalle de Errores por Fila</h3>
+          <span class="badge-error-count">{{ lastReport.errores.length }} filas con error</span>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table error-table">
+            <thead>
+              <tr>
+                <th style="width: 90px;">Fila Excel</th>
+                <th style="width: 160px;">SKU</th>
+                <th>Descripción del Error</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let err of lastReport.errores">
+                <td><span class="badge-row">Fila {{ err.fila }}</span></td>
+                <td><code>{{ err.sku || 'N/A' }}</code></td>
+                <td class="text-error-msg">{{ err.error }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Inventory Table -->
+    <section class="card inventory-table-card">
+      <div class="card-header table-header-flex">
+        <div class="card-title-group">
+          <div class="card-icon table-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16.5 9.4 7.55 4.24a1.78 1.78 0 0 0-2.5 1.55v12.42a1.78 1.78 0 0 0 2.5 1.55L16.5 14.6a1.78 1.78 0 0 0 0-3.2z"/>
+              <path d="M21 12h-3"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="card-title">Explorador de Productos en Base de Datos</h2>
+            <p class="card-desc">{{ totalProductos | number }} productos registrados en SQL Server</p>
+          </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="filter-bar">
+          <div class="search-input-wrapper">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input 
+              type="text" 
+              class="form-input search-input" 
+              placeholder="Buscar por SKU, nombre, modelo..." 
+              [(ngModel)]="searchQuery" 
+              (keyup.enter)="onSearch()">
+          </div>
+
+          <select class="form-select" [(ngModel)]="selectedCategoria" (change)="onCategoryChange()">
+            <option value="">Todas las Categorías</option>
+            <option *ngFor="let cat of categorias" [value]="cat.id_categoria">
+              {{ cat.nombre_categoria }} ({{ cat.id_categoria }})
+            </option>
+          </select>
+
+          <button class="btn-filter" (click)="onSearch()">Filtrar</button>
+        </div>
+      </div>
+
+      <!-- Table Content -->
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>SKU</th>
+              <th>Nombre Producto</th>
+              <th>Categoría</th>
+              <th>Color</th>
+              <th>Talla</th>
+              <th>Modelo</th>
+              <th>Stock</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="isLoadingProducts">
+              <td colspan="9" class="text-center py-4">
+                <span class="spinner-sm"></span> Cargando productos...
+              </td>
+            </tr>
+            <tr *ngIf="!isLoadingProducts && productos.length === 0">
+              <td colspan="9" class="text-center py-4 text-muted">
+                No hay productos que coincidan con la búsqueda.
+              </td>
+            </tr>
+            <tr *ngFor="let p of productos">
+              <td class="text-muted">#{{ p.id_producto }}</td>
+              <td><span class="sku-tag">{{ p.sku }}</span></td>
+              <td class="font-medium">{{ p.nombre }}</td>
+              <td><span class="cat-pill">{{ p.nombre_categoria || p.id_categoria }}</span></td>
+              <td><span class="color-pill">{{ p.color }}</span></td>
+              <td>{{ p.talla || '-' }}</td>
+              <td>{{ p.modelo }}</td>
+              <td>
+                <span class="stock-badge" [class.stock-low]="p.stock <= 5" [class.stock-ok]="p.stock > 5">
+                  {{ p.stock }} un.
+                </span>
+              </td>
+              <td>
+                <span class="status-pill" [class.active]="p.estado" [class.inactive]="!p.estado">
+                  {{ p.estado ? 'ACTIVO' : 'INACTIVO' }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination-footer" *ngIf="totalPages > 1">
+        <span class="page-info">Página {{ currentPage }} de {{ totalPages }}</span>
+        <div class="page-buttons">
+          <button class="btn-page" [disabled]="currentPage === 1" (click)="cambiarPagina(currentPage - 1)">Anterior</button>
+          <button class="btn-page" [disabled]="currentPage === totalPages" (click)="cambiarPagina(currentPage + 1)">Siguiente</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>

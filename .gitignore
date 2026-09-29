@@ -1,0 +1,44 @@
+# Dependencias (NUNCA subir a GitHub)
+node_modules/
+**/node_modules/
+
+# Compilados y builds
+dist/
+**/dist/
+build/
+**/.angular/cache/
+.angular/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Variables de entorno y secretos
+.env
+.env.local
+.env.production
+.env.*.local
+
+# IDEs y Editores de código
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# Archivos temporales de pruebas personales
+**/test_conn.js
+**/generate_test_excel.js
+backend/test_conn.js
+*.tmp
